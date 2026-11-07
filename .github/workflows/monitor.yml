@@ -1,0 +1,33 @@
+name: Freelancehunt monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # каждые 10 минут
+  workflow_dispatch:          # кнопка ручного запуска
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fh-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check new projects
+        env:
+          FH_TOKEN: ${{ secrets.FH_TOKEN }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python3 fh_monitor.py
+
+      - name: Save seen projects
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add seen_projects.json
+          git diff --cached --quiet || (git commit -m "update seen projects" && git push)
